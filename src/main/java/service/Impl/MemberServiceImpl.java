@@ -1,11 +1,19 @@
 package service.Impl;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import pojo.Member;
 import repository.MemberRepository;
 import service.MemberService;
+import service.dto.MemberDTO;
+import service.mapper.MemberMapper;
 
 import javax.inject.Singleton;
 import javax.transaction.Transactional;
+import javax.ws.rs.NotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
@@ -13,44 +21,68 @@ import java.util.List;
 public class MemberServiceImpl implements MemberService {
 
     private final MemberRepository memberRepository;
+    private final MemberMapper memberMapper;
 
-    public MemberServiceImpl(MemberRepository memberRepository) {
+    public MemberServiceImpl(MemberRepository memberRepository, MemberMapper memberMapper) {
         this.memberRepository = memberRepository;
+        this.memberMapper = memberMapper;
     }
     @Override
-    public Member addMember(Member member) {
-        Member member1 = new Member();
-        member1 = memberRepository.save(member);
-        return member1;
-    }
+    public MemberDTO addMember(MemberDTO member) {
+        Member m ;
 
-    @Override
-    public Member FindMemberById(Long _id) {
-        Member member=null;
-        List<Member> list = memberRepository.findAll();
-        System.out.println("REST size "+list.size());
-        for(Member m : list)
+        m = memberMapper.toEntity(member);
+        return memberMapper.toDto(memberRepository.save(m));
+
+    }
+    private boolean MemberExist(String email)
+    {
+        boolean test = false;
+        List<MemberDTO> list = findAllMember();
+        for(MemberDTO m :list)
         {
-            System.out.println("REST _id "+m.getId());
-            if(m.getId().equals(_id))
+            if(m.getEmail().equals(email))
             {
-                member=m;
-                break;
+                test=true;break;
             }
         }
-        System.out.println("REST member "+ (member.getId() != null ? true:false));
-        return member;
+        return test;
     }
 
     @Override
-    public List<Member> findAll() {
-        return memberRepository.findAll();
+    public MemberDTO FindMemberById(Long _id) {
+        return
+                memberRepository.findById(_id).map(memberMapper::toDto)
+                        .orElseThrow(() -> new NotFoundException("id Not Found"));
     }
 
     @Override
-    public Member UpdateUser(Member member) {
+    public Page<MemberDTO> findAll(Pageable pageable) {
+
+        if (pageable.isUnpaged()) {
+            System.out.println("Unpaged");
+            List<MemberDTO> result = findAllMember();
+            return new PageImpl<>(result, Pageable.unpaged(), result.size());
+        }
+        else
+        {
+            System.out.println("paged");
+            Page<MemberDTO> pagedResult = memberRepository.findAll(pageable).map(memberMapper::toDto);
+            System.out.println("=>"+pagedResult.getContent().size());
+            return new PageImpl<>(pagedResult.getContent(), pageable, pagedResult.getTotalElements());
+        }
+    }
+
+    @Override
+    public List<MemberDTO> findAllMember() {
+        return memberMapper.toDto(memberRepository.findAll());
+    }
+
+    @Override
+    public MemberDTO UpdateUser(MemberDTO member) {
         System.out.println("update");
-        return memberRepository.save(member);
+        Member entity =  memberMapper.toEntity(member);
+        return memberMapper.toDto(memberRepository.save(entity));
     }
 
     @Override

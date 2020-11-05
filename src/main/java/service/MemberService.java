@@ -1,18 +1,23 @@
 package service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import pojo.Member;
+import service.dto.MemberDTO;
 
 import java.util.List;
 
 public interface MemberService {
 
-    Member addMember(Member member);
+    MemberDTO addMember(MemberDTO member);
 
-    Member FindMemberById(Long _id);
+    MemberDTO FindMemberById(Long _id);
 
-    List<Member> findAll();
+    Page<MemberDTO> findAll(Pageable pageable);
 
-    Member UpdateUser(Member member);
+    List<MemberDTO> findAllMember();
+
+    MemberDTO UpdateUser(MemberDTO member);
 
     void DeleteUser(Long id);
 
